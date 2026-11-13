@@ -1,0 +1,3 @@
+# OpenCV 5.0 removed cv2.CascadeClassifier (Haar cascade), which face_utils.py needs
+opencv-python>=4.5,<5
+numpy
