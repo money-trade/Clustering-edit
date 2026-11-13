@@ -1,4 +1,5 @@
 import math
+import os
 import random
 import cv2
 import numpy as np  # ใช้แค่สร้างภาพให้ cv2.imshow เท่านั้น ไม่ใช้คำนวณ
@@ -11,6 +12,7 @@ SEED = 42
 N_TRIES = 10  # จำนวนครั้งที่สุ่มจุดเริ่มต้นใหม่ (เลือกครั้งที่ผลรวมระยะน้อยสุด)
 MAX_ITER = 100
 EPS = 0.01
+SAVE_IMAGE = False  # True = บันทึกภาพผลเป็น result_groups.png ไว้ใส่รายงาน (ค่าเริ่มต้นไม่บันทึกไฟล์ใด ๆ)
 
 
 # ---------- ฟังก์ชันคำนวณมือทั้งหมด ----------
@@ -278,6 +280,12 @@ for g in range(k):
 
 width = max(r.shape[1] for r in rows)
 result = np.vstack([np.pad(r, ((0, 6), (0, width - r.shape[1])), constant_values=255) for r in rows])
+
+if SAVE_IMAGE:
+    # ใช้ imencode + tofile แทน cv2.imwrite เพื่อให้บันทึกได้แม้ path มีภาษาไทย (Windows)
+    out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "result_groups.png")
+    cv2.imencode(".png", result)[1].tofile(out)
+    print(f"\nบันทึกภาพผลที่ {out}")
 
 cv2.imshow("K-means face groups", result)
 cv2.waitKey(0)
