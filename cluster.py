@@ -4,7 +4,9 @@ import cv2
 import numpy as np  # ใช้แค่สร้างภาพให้ cv2.imshow เท่านั้น ไม่ใช้คำนวณ
 from face_utils import load_dataset
 
-k = 4  # จำนวนกลุ่ม K-means
+k = 4  # จำนวนกลุ่ม K-means (ใช้เมื่อ AUTO_K = False)
+AUTO_K = False  # True = ลองทุกค่า k ใน K_RANGE แล้วเลือกค่าที่ silhouette เฉลี่ยสูงสุด
+K_RANGE = range(2, 7)
 SEED = 42
 N_TRIES = 10  # จำนวนครั้งที่สุ่มจุดเริ่มต้นใหม่ (เลือกครั้งที่ผลรวมระยะน้อยสุด)
 MAX_ITER = 100
@@ -214,11 +216,26 @@ names = display_names(people)
 
 # ---------- จัดกลุ่มด้วย K-means ----------
 X = [equalize_hist(f) for f in flat_faces]
-groups = kmeans(X, k, N_TRIES, SEED)
+D = pairwise_dist(X)  # ใช้คำนวณ silhouette
 
-# วัดคุณภาพการแบ่งกลุ่มด้วย silhouette
-D = pairwise_dist(X)
-sil = silhouette(D, groups, k)
+if AUTO_K:
+    # ลองหลายค่า k แล้วเลือกค่าที่ silhouette เฉลี่ยสูงสุด
+    print("เลือกจำนวนกลุ่มอัตโนมัติ:")
+    best = None
+    for kk in K_RANGE:
+        if kk > len(X):
+            break
+        g_try = kmeans(X, kk, N_TRIES, SEED)
+        s_try = silhouette(D, g_try, kk)
+        score = sum(s_try) / len(s_try)
+        print(f"  k = {kk}: silhouette เฉลี่ย {score:.3f}")
+        if best is None or score > best[0]:
+            best = (score, kk, g_try, s_try)
+    _, k, groups, sil = best
+    print(f"  -> ใช้ k = {k}\n")
+else:
+    groups = kmeans(X, k, N_TRIES, SEED)
+    sil = silhouette(D, groups, k)
 
 # แสดงรายชื่อสมาชิกแต่ละกลุ่มใน Console
 for g in range(k):
