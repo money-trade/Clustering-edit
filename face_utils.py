@@ -3,6 +3,10 @@ import re
 import cv2
 import numpy as np
 
+if not hasattr(cv2, "CascadeClassifier"):
+    raise ImportError(f"OpenCV {cv2.__version__} ไม่มี CascadeClassifier (ถูกถอดออกใน OpenCV 5) "
+                      "ให้ติดตั้งเวอร์ชัน 4: pip install -r requirements.txt")
+
 DATASET_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dataset")
 IMG_SIZE = (140, 180)  # (กว้าง, สูง) ของหน้าที่ตัดแล้ว
 CASCADE = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")

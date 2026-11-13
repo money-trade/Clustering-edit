@@ -18,8 +18,11 @@
 ทดสอบกับ Python 3.14
 
 ```bash
-pip install opencv-python numpy
+pip install -r requirements.txt
 ```
+
+> ต้องใช้ **OpenCV เวอร์ชัน 4** (`opencv-python<5`) เพราะ OpenCV 5.0 ถอด `cv2.CascadeClassifier` (Haar Cascade) ออกแล้ว
+> ถ้าติดตั้ง 5.0 ไปแล้ว ให้รัน `pip install "opencv-python<5"`
 
 - **OpenCV** ใช้อ่านรูป หาหน้า (Haar Cascade) และวาด/แสดงภาพเท่านั้น
 - **NumPy** ใช้ใน `face_utils.py` ตอนตัดหน้า และใน `cluster.py` ตอนสร้างภาพให้ `cv2.imshow` เท่านั้น
