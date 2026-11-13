@@ -253,10 +253,12 @@ def to_img(flat):
     return np.array(flat, np.uint8).reshape(H, W)
 
 
-def thumb(flat, txt):
-    card = np.full((132, 90), 255, np.uint8)
+def thumb(flat, txt, sub=""):
+    card = np.full((146, 90), 255, np.uint8)
     card[3:111, 3:87] = cv2.resize(to_img(flat), (84, 108))
     cv2.putText(card, txt[:12], (3, 124), cv2.FONT_HERSHEY_SIMPLEX, 0.4, 0, 1)
+    if sub:
+        cv2.putText(card, sub, (3, 140), cv2.FONT_HERSHEY_SIMPLEX, 0.35, 90, 1)
     return card
 
 
@@ -266,10 +268,13 @@ for g in range(k):
     if not m:
         continue
 
-    head = np.full((132, 100), 255, np.uint8)
-    cv2.putText(head, f"Group {g + 1}", (6, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.6, 0, 2)
+    # หัวแถว = หน้าเฉลี่ยของกลุ่ม (ช่วยดูว่ากลุ่มนี้มีลักษณะร่วมอะไร) + silhouette เฉลี่ยของกลุ่ม
+    avg = sum(sil[i] for i in m) / len(m)
+    head = thumb(mean_vectors([flat_faces[i] for i in m]), f"Group {g + 1}", f"avg s={avg:.2f}")
+    cv2.rectangle(head, (1, 1), (88, 112), 0, 2)
+    gap = np.full((146, 10), 255, np.uint8)
 
-    rows.append(np.hstack([head] + [thumb(flat_faces[i], names[i]) for i in m]))
+    rows.append(np.hstack([head, gap] + [thumb(flat_faces[i], names[i], f"s={sil[i]:.2f}") for i in m]))
 
 width = max(r.shape[1] for r in rows)
 result = np.vstack([np.pad(r, ((0, 6), (0, width - r.shape[1])), constant_values=255) for r in rows])
