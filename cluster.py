@@ -155,6 +155,17 @@ def kmeans(X, k, tries, seed):
     return best_labels
 
 
+def display_names(people):
+    """ชื่อที่แสดง = ส่วนหลัง "_" ถ้าชื่อซ้ำกันให้ต่อท้ายด้วยเลข 4 ตัวท้ายของรหัส เช่น First(0607)"""
+    short = [p.split("_", 1)[-1] for p in people]
+    out = []
+    for p, s in zip(people, short):
+        if short.count(s) > 1:
+            s = f"{s}({p.split('_', 1)[0][-4:]})"
+        out.append(s)
+    return out
+
+
 # ---------- โหลดข้อมูล ----------
 faces, labels = load_dataset()
 people = sorted(set(labels))
@@ -165,7 +176,7 @@ flat_faces = []
 for p in people:
     vecs = [faces[i].flatten().tolist() for i in range(len(faces)) if labels[i] == p]
     flat_faces.append(mean_vectors(vecs))
-names = [p.split("_", 1)[-1] for p in people]
+names = display_names(people)
 
 # ---------- จัดกลุ่มด้วย K-means ----------
 X = [equalize_hist(f) for f in flat_faces]
