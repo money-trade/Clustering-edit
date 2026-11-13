@@ -1,3 +1,4 @@
+import math
 import random
 import cv2
 import numpy as np  # ใช้แค่สร้างภาพให้ cv2.imshow เท่านั้น ไม่ใช้คำนวณ
@@ -155,6 +156,39 @@ def kmeans(X, k, tries, seed):
     return best_labels
 
 
+def pairwise_dist(X):
+    """ตารางระยะยูคลิดระหว่างทุกคู่ (คำนวณครั้งเดียว ใช้ซ้ำได้)"""
+    n = len(X)
+    D = [[0.0] * n for _ in range(n)]
+    for i in range(n):
+        for j in range(i + 1, n):
+            D[i][j] = D[j][i] = math.sqrt(sq_dist(X[i], X[j]))
+    return D
+
+
+def silhouette(D, groups, k):
+    """ค่า silhouette ของแต่ละคน: (b - a) / max(a, b)
+    a = ระยะเฉลี่ยถึงเพื่อนในกลุ่มเดียวกัน, b = ระยะเฉลี่ยถึงกลุ่มอื่นที่ใกล้ที่สุด
+    ใกล้ 1 = อยู่ถูกกลุ่มชัดเจน, ใกล้ 0 = อยู่กึ่งกลางระหว่างกลุ่ม, ติดลบ = ใกล้กลุ่มอื่นมากกว่า"""
+    n = len(D)
+    s = [0.0] * n
+    for i in range(n):
+        same = [D[i][j] for j in range(n) if j != i and groups[j] == groups[i]]
+        if not same:  # กลุ่มที่มีคนเดียว กำหนดเป็น 0
+            continue
+        a = sum(same) / len(same)
+        b = None
+        for g in range(k):
+            other = [D[i][j] for j in range(n) if groups[j] == g]
+            if g != groups[i] and other:
+                m = sum(other) / len(other)
+                if b is None or m < b:
+                    b = m
+        if b is not None and max(a, b) > 0:
+            s[i] = (b - a) / max(a, b)
+    return s
+
+
 def display_names(people):
     """ชื่อที่แสดง = ส่วนหลัง "_" ถ้าชื่อซ้ำกันให้ต่อท้ายด้วยเลข 4 ตัวท้ายของรหัส เช่น First(0607)"""
     short = [p.split("_", 1)[-1] for p in people]
@@ -182,10 +216,19 @@ names = display_names(people)
 X = [equalize_hist(f) for f in flat_faces]
 groups = kmeans(X, k, N_TRIES, SEED)
 
+# วัดคุณภาพการแบ่งกลุ่มด้วย silhouette
+D = pairwise_dist(X)
+sil = silhouette(D, groups, k)
+
 # แสดงรายชื่อสมาชิกแต่ละกลุ่มใน Console
 for g in range(k):
-    members = [names[i] for i in range(len(people)) if groups[i] == g]
-    print(f"กลุ่ม {g + 1} ({len(members)} คน): " + ", ".join(members))
+    m = [i for i in range(len(people)) if groups[i] == g]
+    avg = sum(sil[i] for i in m) / len(m) if m else 0.0
+    print(f"กลุ่ม {g + 1} ({len(m)} คน, silhouette {avg:.3f}): " + ", ".join(names[i] for i in m))
+print(f"\nsilhouette เฉลี่ยทั้งหมด: {sum(sil) / len(sil):.3f}  (ใกล้ 1 = แยกกลุ่มชัด, ใกล้ 0 = ไม่ชัด)")
+odd = [f"{names[i]} ({sil[i]:.3f})" for i in range(len(people)) if sil[i] < 0]
+if odd:
+    print("คนที่ใกล้กลุ่มอื่นมากกว่ากลุ่มตัวเอง: " + ", ".join(odd))
 
 
 # ---------- สร้างภาพสรุปผล (ใช้ cv2 วาดเท่านั้น) ----------
